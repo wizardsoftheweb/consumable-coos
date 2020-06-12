@@ -1,42 +1,92 @@
-# A Container-Optimized OS Vagrant Box
-
-WIP
+# Container-Optimized OS Outside of GCP  <!-- omit in toc -->
 
 I want to locally play with [Google's `coos`](https://cloud.google.com/container-optimized-os) in both `vagrant` and containers but they don't publish an image ([AWS does](https://hub.docker.com/_/amazonlinux) and [Azure builds on top of Ubuntu](https://github.com/Azure/AKS/tree/master/vhd-notes/aks-ubuntu); Google builds their own OS from scratch).
 
-## Notes
-
-http://commondatastorage.googleapis.com/chrome-infra-docs/flat/depot_tools/docs/html/depot_tools_tutorial.html
-
-https://cloud.google.com/container-optimized-os/docs/how-to/building-from-open-source
-
-https://cloud.google.com/container-optimized-os
-
-https://source.android.com/setup/develop/repo
+## Contents <!-- omit in toc -->
+- [Prerequisites](#prerequisites)
+  - [Dependencies](#dependencies)
+    - [System](#system)
+    - [`depot_tools`](#depot_tools)
+    - [`(git-)repo`](#git-repo)
+  - [Potentially Useful Local Setup](#potentially-useful-local-setup)
+- [Working with COOS](#working-with-coos)
+  - [Pulling the Source](#pulling-the-source)
+  - [Building the Image](#building-the-image)
+  - [Running the Image with KVM](#running-the-image-with-kvm)
+- [Near Future](#near-future)
+  - [Things to Track Down](#things-to-track-down)
+  - [Things to Test](#things-to-test)
+- [Notes](#notes)
 
 ## Prerequisites
 
-http://commondatastorage.googleapis.com/chrome-infra-docs/flat/depot_tools/docs/html/depot_tools_tutorial.html
+### Dependencies
 
-https://gerrit.googlesource.com/git-repo
+#### System
 
-https://source.android.com/setup/develop/repo
+Find and install these with your local package manager.
 
-## Necessary Info
+* `git`
+* `curl`
+* `libvirt` and `qemu`/`kvm`
 
-https://cloud.google.com/container-optimized-os/docs/how-to/building-from-open-source
+#### `depot_tools`
 
-Find the board name. Currently `lakitu`.
+You'll need to [install and configure `depot_tools`](http://commondatastorage.googleapis.com/chrome-infra-docs/flat/depot_tools/docs/html/depot_tools_tutorial.html) to work with the Chromium OS source.
 
-## Potentially Useful Local Setup
+I don't like global installs for dev tools; things like `npm install --global` and `sudo pip install` just create dependency hell. Here's how I choose to set things up on Linux (it's similar to [how `pip install --user` works](https://docs.python.org/3/library/site.html#site.USER_SITE) minus the `bin` exports).
 
-* [Using `protocol.version=2`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-protocolversion). There doesn't seem to be any issue to set and forget this; it appears to revert gracefully.
+```shell
+mkdir -p ~/.local/lib && cd $_
+git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+```
+
+I use [the `zshenv` file](http://zsh.sourceforge.net/Intro/intro_3.html) for `PATH` changes; drop this where you set yours.
+
+```
+echo 'export PATH="$HOME/.local/lib/depot_tools:$PATH"' >> ~/.zshenv
+```
+
+Once you've done that and refreshed your env, you can check it by running `gclient`; it will hang initially as it bootstraps itself.
+
+AFAIK, `gclient` requires `python` to be on the `PATH`. If you're running a newer distro that ships with `python3`, not `python` (v2), **don't symlink `python3` to `python`**. Just bite the bullet and install `python` (v2). If you install an app that expects `python2` as `python` but you provide `python3`, you can really break stuff. On older distros, this will break system calls and can totally ruin your installation.
+
+This doesn't work for Windows. You have to use `cmd.exe` which is gnarly. [Follow the docs](https://commondatastorage.googleapis.com/chrome-infra-docs/flat/depot_tools/docs/html/depot_tools_tutorial.html#_windows).
+
+#### `(git-)repo`
+
+[The `repo` cli](https://gerrit.googlesource.com/git-repo) is sort of included in `depot_tools` but you essentially reinstall it with every giant mess of related Google repos that constitute any of Chromium VCS (also any Google VCS). Frustratingly, you can't run `repo help <command>` (except for `repo help init`) until you've run a `repo init` somewhere. The `repo` shipped with `depot_tools` is [a version from Android without many features](https://source.android.com/setup/develop/repo). I highly recommend pulling in newer/more featureful versions as you `init` via the `--repo-url` and `--repo-rev` flags ("repo" is overloaded in this context and refers to the tool `repo`, not the VCS repo you're `init`'ing).
+
+[The COOS build page](https://cloud.google.com/container-optimized-os/docs/how-to/building-from-open-source#obtaining_the_source_code) uses [a Chromium fork](https://chromium.googlesource.com/external/repo.git) instead of the Gerrit base. I don't know if there are any breaking API changes but it's simple enough to just use that version out of the three completely distinct versions of the same tool thrown at you in the prereqs to building COOS so just run with it (so much for DRY). I went a step further and used the `stable` ref because it's called "stable."
+
+```shell
+repo init \
+    --manifest-url <some url> \
+    ...
+    --repo-url https://chromium.googlesource.com/external/repo.git \
+    --repo-ref stable \
+    ...
+```
+
+### Potentially Useful Local Setup
+
+* [Use `protocol.version=2`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-protocolversion). There doesn't seem to be any issue to set and forget this; it appears to revert gracefully. If the remote can handle it, [it reduces overhead](https://git-scm.com/docs/protocol-v2) and that's always a good thing.
 
     ```shell
     git config --global protocol.version 2
     ```
 
-## Pulling the Source Code
+* Ensure you've got a `~/.gitconfig` file. [`repo` will potentially write to it](https://bugs.chromium.org/p/gerrit/issues/detail?id=12912&q=component%3Arepo) even if you're using other files. I'm a huge fan of [the XDG Base Dir Spec](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html) and keep my config in `XDG_CONFIG_HOME="$HOME/.config"` to reduce clutter in `$HOME`. Lots of things don't follow the spec, though, so I've got symlinks pointing to my tidy `~/.config` directories.
+
+    ```shell
+    ln -sf ~/.config/git/config ~/.gitconfig
+    ```
+
+    If you don't have any `git` config at all, you'll need to [set some globals](https://commondatastorage.googleapis.com/chrome-infra-docs/flat/depot_tools/docs/html/depot_tools_tutorial.html#_bootstrapping_configuration).
+
+## Working with COOS
+
+### Pulling the Source
 
 1. Create a project directory
 
@@ -44,10 +94,22 @@ Find the board name. Currently `lakitu`.
     mkdir coos && cd $_
     ```
 
+    From now on, any command presented by itself or following a single `$` should be run from this directory.
+
+    ```shell
+    pwd # would output /home/rickjames/code/coos
+    ```
+
+    ```shell
+    $ pwd
+    /home/rickjames/code/coos
+    ```
+
 2. Initialize `repo`.
 
-    * Use the `stable` branch of the manifest
-    * Specify the `minilayout` group for a smaller footprint
+    * Use the `stable` branch of the manifest because it's called "stable"
+    * Specify [the `minilayout` group](https://chromium.googlesource.com/chromiumos/manifest.git/+/refs/heads/master#minilayout) for a smaller footprint. There's a chance [it might break things](https://chromium.googlesource.com/chromiumos/docs/+/master/developer_guide.md#get-the-source-code) (see the last note in the section); different sources say different things about it.
+    * I use `--verbose` for debugging. It dumps a lot so YMMV.
 
     ```shell
     repo init \
@@ -57,19 +119,219 @@ Find the board name. Currently `lakitu`.
         --repo-url https://chromium.googlesource.com/external/repo.git \
         --repo-rev stable \
         --verbose
+    ```
 
-        # --groups minilayout test?
-        # --partial-clone issues?
+3. Fetch everything first.
+
+    * `--fail-fast` kills the sync after an error
+    * `--no-manifest-update` skips updating the manifest (that we theoretically just downloaded)
+    * `--network-only` fetchs remote content but does not apply it. [This tip](TOC-How-to-make-repo-sync-less-disruptive-by-running-the-stages-separately) makes it easier to debug failed `sync`s.
+    * `--clone-bundle` uses `curl` to pull [`git` bundles](https://git-scm.com/book/en/v2/Git-Tools-Bundling) (when provided) instead of making a bunch of remote git calls. AFAIK, this requires a bit more space than the remote calls but these are way easier to debug, seem to run faster, and don't appear to fail anywhere near as much as the remote calls.
+    * `--jobs` should be an integer in `[8]` specifying the number of parallel fetches you want to run; higher numbers require bigger network pipes
+
+    ```shell
+    repo sync \
+        --fail-fast \
+        --no-manifest-update \
+        --network-only \
+        --clone-bundle \
+        --jobs 4 \
+        --verbose
+    ```
+
+    Note that `--network-only` in combinattion with `--clone-bundle` will apply the contents of any bundles instead of just fetching them as we're downloading a file and then reconstructing the `git` changes from it.
+
+4. Apply all the fetched things
+
+    * `--fail-fast` like above
+    * `--local-only` applies any remaining fetched changes from things that were not sourced from a bundle
+    * `--jobs` should be an integer in `[8]` specifying the number of parallel sets of changes you want to apply; the higher the number the more compute you need
+
+    ```shell
+    repo sync \
+        --fail-fast \
+        --local-only \
+        --jobs 1 \
+        --verbose
+    ```
+
+### Building the Image
+
+1. Use `cros_sdk` to jump into a `chroot`. It helps you with missing system deps and builds the `chroot` on first/second run.
+
+    ```shell
+    $ cros_sdk --enter
+    [sudo] password for rickjames:
+    The tool(s) lvchange, lvcreate, lvs, pvscan, thin_check, vgchange, vgcreate, vgs were not found.
+    Please make sure the lvm2 and thin-provisioning-tools packages
+    are installed on your host.
+    Example(ubuntu):
+        sudo apt-get install lvm2 thin-provisioning-tools
+
+    # resove the dep issues
+
+    $ cros_sdk --enter
+    08:18:28: NOTICE: Mounted /home/rickjames/code/coos/chroot.img on chroot
+    08:18:28: NOTICE: Downloading SDK tarball...
+    which08:21:14: NOTICE: Creating chroot. This may take a few minutes...
+    ...
+    # a few minutes later
+    ...
+    cros_sdk:make_chroot: All set up.  To enter the chroot, run:
+    $ cros_sdk --enter
+
+    CAUTION: Do *NOT* rm -rf the chroot directory; if there are stale bind
+    mounts you may end up deleting your source tree too.  To unmount and
+    delete the chroot cleanly, use:
+    $ cros_sdk --delete
+
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $
+    ```
+
+2. Determine the board and `export` it. You'll need to find the board name [in the docs](https://cloud.google.com/container-optimized-os/docs/how-to/building-from-open-source). At the moment it's `lakitu`.
+
+    ```shell
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $ export BOARD=lakitu
+    ```
+
+    This isn't strictly necessary. It's an easy way [to run via copypasta](https://chromium.googlesource.com/chromiumos/docs/+/master/developer_guide.md#select-a-board), which is nice. It will go away when you exit the `chroot`, though, so add it to the `.bashrc` for permanence.
+
+    ```shell
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $ echo "export BOARD=${BOARD}" >> ~/.bashrc
+    ```
+
+3. Set up the `chroot` to build our `BOARD`.
+
+    ```shell
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $ setup_board --board ${BOARD} --default
+    ```
+
+    The `--default` flag is optional. It writes the provided board name to `src/scripts/.default_board`, which means we don't have to keep specifying the board on every command (yes, that means the previous step was redundant, but now you have multiple ways to screw up the build!).
+
+4. Define the shared user's (`chronos`) password.
+
+    ```shell
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $ ./set_shared_user_password.sh
+    Enter password for shared user account: Password set in /etc/shared_user_passwd.txt
+    ```
+
+    We'll use these credentials later to get into the image, so don't forget this password.
+
+5. Build the
+
+    ``shell
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $
+    ```
+
+    ``shell
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $
+    ```
+
+    ``shell
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $
+    ```
+
+    ``shell
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $
     ```
 
 
+Those `coos` build instructions appear to be outdated, however, so we'll use [the Chromium OS guide](https://chromium.googlesource.com/chromiumos/docs/+/master/developer_guide.md#Building-Chromium-OS) with the `lakitu` board.
 
-## Things to Test
+    ```shell
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $ setup_board --board=lakitu
 
-* [Use the `minilayout` group](https://chromium.googlesource.com/chromiumos/manifest/#minilayout): all the docs say it might not work; test?
+    # should be a fairly short build
+
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $ ./build_packages --board=lakitu
+
+    # much longer build
+    ...
+    Builds complete
+    11:00:59 INFO    : Elapsed time (build_packages): 73m34s
+    Done
+
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $ ./build_image --board=lakitu dev
+
+    # shorter build
+    ...
+    11:56:49 INFO    : To convert it to a VM image, use:
+    11:56:49 INFO    :   ./image_to_vm.sh --from=../build/images/lakitu/R85-13274.0.2020_06_12_1147-a1 --board=lakitu
+
+    11:56:49 INFO    : Elapsed time (build_image): 9m6s
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $ ./image_to_vm.sh --from=../build/images/lakitu/R85-13274.0.2020_06_12_1147-a1 --board=lakitu
+
+    # quick conversion
+    ...
+    Creating final image
+    Created image at /mnt/host/source/src/build/images/lakitu/R85-13274.0.2020_06_12_1147-a1
+    You can start the image with:
+    cros_vm --start --image-path /mnt/host/source/src/build/images/lakitu/R85-13274.0.2020_06_12_1147-a1/chromiumos_qemu_image.bin
+
+    # exit the chroot so it can release some resources
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $ exit
+    ```
+
+    At this point, there's a good chance our `chroot.img` is fairly massive. [It's a sparse file](https://groups.google.com/a/chromium.org/d/msg/chromium-os-dev/cc3pp8WzChc/07pKpWuPAwAJ), though, so [re-enter the `chroot` briefly to tidy it](https://chromium.googlesource.com/chromiumos/chromite/+/e3d5bd1ef1a99d5be8fc452f6c617efc33806058/scripts/cros_sdk.py#74).
+
+    ```shell
+    $ cros_sdk --enter
+    [sudo] password for rickjames:
+    12:26:02: NOTICE: /home/rickjames/code/coos/chroot.img is using 21 GiB more than needed.  Running fstrim.
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $ exit
+    logout
+    ```
+
+    If you ran `build_image` multiple times, you might also consider removing builds you're not using, as each build dir takes up several gigs of space and `cros_sdk` does not autoclean them.
+
+    ```shell
+    $ find src/build/images/lakitu/ \
+        -mindepth 1 \
+        -maxdepth 1 \
+        -type d \
+        -not -name `readlink src/build/images/lakitu/latest` #\
+    #   -exec rm -rf {} \;
+    # You should verify the find exclues
+    # uncomment the line above and the tailing slash above it
+    # to automatically nuke anything found
+
+    src/build/images/lakitu/example-old-image-dir
+    ```
+
+    ```shell
+    ls src/build/images/lakitu -I `readlink src/build/images/latest`
+    ls src/build/images/lakitu -I "$( readlink src/build/images/latest )"  -ltr
+    find src/build/images/lakitu -type d
+    ```
+
+### Running the Image with KVM
+
+The offical docs provide [a snippet to run](https://cloud.google.com/container-optimized-os/docs/how-to/building-from-open-source#running_in_kvm) to verify the image.
+
+```shell
+kvm \
+    -display none \
+    -m 1024 \
+    -netdev nic,model=virtio \
+    -netdev user,hostfwd=tcp:127.0.0.1:9222-:22 \
+    -hda src/build/images/lakitu/latest/
+```
+## Near Future
+
+### Things to Track Down
+
+* build logs
+* times to run
+* size on disk at each step
+
+### Things to Test
+
+* ~~[Use the `minilayout` group](https://chromium.googlesource.com/chromiumos/manifest/#minilayout): all the docs say it might not work; test?~~ Seems to work for now
 * `repo init --partial-clone` with `repo sync --clone-bundle`: does this work and is it faster?
 * `repo sync --current-branch --network-only`: will this break the `--local-only` run?
+* `cros_sdk --nouse-image`: size difference?
+* `cros_sdk --nousepkg`: size difference?
 
-## Laughable Inaccuracies
+## Notes
 
-* [The note at the bottom of this section](https://cloud.google.com/container-optimized-os/docs/how-to/building-from-open-source#obtaining_the_source_code): I'm not entirely sure just how beefy your PC and network pipes would have to be to get the entire source without any slimming in "several minutes." I've spent maybe six hours just trying to get a single working copy down; granted, some of that is due to stops and starts as I test new configurations from scratch. There are more than ten copies of the kernel in the full, each somewhere around `2.5GB` in size. There are still close to 200 other projects to download in addition to those, plus the time it takes `git` to reconstruct the repo from the bundle.
+* [The note at the bottom of this section](https://cloud.google.com/container-optimized-os/docs/how-to/building-from-open-source#obtaining_the_source_code) is laughably inaccurate: I'm not entirely sure just how beefy your PC and network pipes would have to be to get the entire source without any slimming in "several minutes." I've spent maybe six hours just trying to get a single working copy down; granted, some of that is due to stops and starts as I test new configurations from scratch. There are more than ten copies of the kernel in the full, each somewhere around `2.5GB` in size. There are still close to 200 other projects to download in addition to those, plus the time it takes `git` to reconstruct the repo from the bundle.
