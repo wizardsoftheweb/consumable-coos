@@ -1,7 +1,5 @@
 # failed file pls ignore
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-
 ## Potentially Useful Local Setup
 
 * [Increasing `http.postBuffer`](https://stackoverflow.com/a/6849424). Read the analysis; YMMV. Might not be necessary when using `repo sync --clone-bundle`.
@@ -146,3 +144,10 @@
     (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $ ./build_packages --board=lakitu
     (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $
     ```
+
+## License
+
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
+
+See [the NOTICE file](./NOTICE)
