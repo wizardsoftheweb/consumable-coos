@@ -12,6 +12,10 @@ I want to locally play with [Google's `coos`](https://cloud.google.com/container
 - [Working with COOS](#working-with-coos)
   - [Pulling the Source](#pulling-the-source)
   - [Building the Image](#building-the-image)
+  - [Licenses and Attribution](#licenses-and-attribution)
+    - [Background](#background)
+    - [Do the Needful](#do-the-needful)
+    - [Creating the Attribution File](#creating-the-attribution-file)
   - [Running the Image with KVM](#running-the-image-with-kvm)
 - [Near Future](#near-future)
   - [Things to Track Down](#things-to-track-down)
@@ -125,7 +129,7 @@ repo init \
 
     * `--fail-fast` kills the sync after an error
     * `--no-manifest-update` skips updating the manifest (that we theoretically just downloaded)
-    * `--network-only` fetchs remote content but does not apply it. [This tip](TOC-How-to-make-repo-sync-less-disruptive-by-running-the-stages-separately) makes it easier to debug failed `sync`s.
+    * `--network-only` fetchs remote content but does not apply it. [This tip](https://sites.google.com/a/chromium.org/dev/chromium-os/tips-and-tricks-for-chromium-os-developers#TOC-How-to-make-repo-sync-less-disruptive-by-running-the-stages-separately) makes it easier to debug failed `sync`s.
     * `--clone-bundle` uses `curl` to pull [`git` bundles](https://git-scm.com/book/en/v2/Git-Tools-Bundling) (when provided) instead of making a bunch of remote git calls. AFAIK, this requires a bit more space than the remote calls but these are way easier to debug, seem to run faster, and don't appear to fail anywhere near as much as the remote calls.
     * `--jobs` should be an integer in `[8]` specifying the number of parallel fetches you want to run; higher numbers require bigger network pipes
 
@@ -217,11 +221,55 @@ repo init \
 
     We'll use these credentials later to get into the image, so don't forget this password.
 
-5. Build the
+5. Build all the sourced projects inside the image.
+
+    * `--nowithdebug` removes debugging overhead; since we're attempting to pipeline this, we don't need that
+    * `--jobs -1` is the default max number of concurrent jobs; you don't need to specify but it's useful to know about if you're experiencing issues with from too many jobs.
 
     ```shell
-    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $
+    (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $ ./build_packages --nowithdebug --jobs -1
     ```
+
+    **THIS WILL TAKE A VERY LONG TIME.** The docs say vanilla Chromium OS with everything can take [about 90 minutes](https://chromium.googlesource.com/chromiumos/docs/+/master/developer_guide.md#build-the-packages-for-your-board). Our `coos` image from the `minilayout` might take a little less; I think my first run was a little over an hour. If you save and reuse the `chroot`, this goes down exponentially because you won't have to rebuild everything every time. I'm not entirely sure how to approach this on cloud build platforms yet. That build time is much longer than most allow for free and the `chroot` artifact can hit many tens of gigs (although it will periodically [run `fstrim`](https://linux.die.net/man/8/fstrim); more on that later).
+
+### Licenses and Attribution
+
+I take FOSS licensing very seriously. For hobby and small business devs, both protecting IP and limiting liability are huge. For major companies, mitigating superfluous litigation and properly attributing FOSS devs to remove licensing costs are good ideas (I think; I'm not a major company).
+
+**Please note that I am not a lawyer and you should not miscontrue this as actual legal advice.**
+
+#### Background
+
+[The Google Cloud `coos` build docs](https://cloud.google.com/container-optimized-os/docs/how-to/building-from-open-source) have the potential to set you up for a world of hurt if you distribute any `coos` artifacts. Deploying artifacts internally without exposing them to them external consumers isn't that grey; in the US corporations are people and most corporations won't hire a developer without requiring them to sign over the rights for everything from the things the dev builds to the thoughts the dev has on the clock.
+
+Exposing an interface to some `coos` artifacts to end users is a bit murkier. Some FOSS licenses explicitly allow things like SaaS without attribution. Others don't. Licenses don't trigger unless the licensed code is actually distributed and, arguably, most cloud artifact deployments do not distribute software.
+
+Actually sharing `coos` artifacts is far from grey; if I send you a completed `coos` image, I have distributed software that contains FOSS licenses and I must provide attribution and possibly even release it under a copyleft license, depending what I include.
+
+In theory, (**I am not a lawyer**), distributing build recipes, such as a Dockerfile, Vagrantfile, or custom build script does not trigger FOSS licenses if no code is included and the end user is the one who actually pulls all the licensed software in by running the recipe. THat's similar to hosting a webpage full of links; unless the link targets explicitly require something in return for targeting them or the links reproduce the external content, the page hasn't actually distributed anything. If webpages full of links were illegal, search engines, Google included, would be illegal.
+
+All that being said, the right and moral thing to do is always attribute as much possible as often as you can when it's a grey area. The legal thing to do is consult a lawyer.
+
+#### Do the Needful
+
+`coos` is a specific instance of Chromium OS, which means it falls under [Chromium OS licensing requirements](https://www.chromium.org/chromium-os/licensing). Until I'm able to grok [the Chromium OS dev licensing process](https://dev.chromium.org/chromium-os/licensing/licensing-for-chromiumos-developers) and incorporate it into any automated process, I'll be sharing recipes and guides like this.
+
+There's [an additional/alternative/totally different process](https://www.chromium.org/chromium-os/licensing/building-a-distro) that can be followed for Chromium OS shippers. This has the potential to drastically change how a `coos` functions, so I need to wrap my head around that too.
+
+**Please note the first process seems to be poorly defined and might not work `coos`. The second process by telling you to not depend on it to fulfill legal obligations.** User beware. But also, like FOSS itself, try to believe that people can be good. If you actively work to fulfill license terms, most FOSS license holders will try to work with you if you screw it up. Just don't be evil.
+
+#### Creating the Attribution File
+
+
+
+https://www.chromium.org/chromium-os/licensing/building-a-distro
+
+
+https://www.chromium.org/chromium-os/licensing
+
+EEE TBD; old
+
+
 
     ```shell
     (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $
