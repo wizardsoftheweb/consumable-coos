@@ -4,7 +4,10 @@
 
 I want to locally play with [Google's `coos`](https://cloud.google.com/container-optimized-os) in both `vagrant` and containers but they don't publish an image ([AWS does](https://hub.docker.com/_/amazonlinux) and [Azure builds on top of Ubuntu](https://github.com/Azure/AKS/tree/master/vhd-notes/aks-ubuntu); Google builds their own OS from scratch).
 
+At the moment this repo is basically just a giant doc on how to build `coos` with notes and questions about pipelining the build into different sources.
+
 ## Contents <!-- omit in toc -->
+- [A Naming Aside](#a-naming-aside)
 - [Prerequisites](#prerequisites)
   - [Dependencies](#dependencies)
     - [System](#system)
@@ -23,6 +26,12 @@ I want to locally play with [Google's `coos`](https://cloud.google.com/container
   - [Things to Track Down](#things-to-track-down)
   - [Things to Test](#things-to-test)
 - [Notes](#notes)
+
+## A Naming Aside
+
+Google Cloud drops a letter and a hyphen from the name when they use an initialism to describe the project (`cos` is ***C***ontainer - optimized ***O***perating ***S***ystem). I drop a hyphen (`coos` is ***C***ontainer - ***O***ptimized ***O***perating ***S***ystem). When I was first indirectly exposed to `coos` earlier this year, I was terrified my teammates were advocating using [the now deprecated CoreOS project](https://coreos.com/os/eol/) (`cos` is ***C***ore ***O***perating ***S***ystem).
+
+I'm actively debating whether or not I should refactor with the hyphen (`c-oos` is ***C***ontainer ***-*** ***O***ptimized ***O***perating ***S***ystem) because, as you can, pedantry is _a big deal_.
 
 ## Prerequisites
 
