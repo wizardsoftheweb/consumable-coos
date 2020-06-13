@@ -1,5 +1,7 @@
 # `consumable-coos`  <!-- omit in toc -->
 
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)  [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/) [![Check the NOTICE](https://img.shields.io/badge/Check%20the-NOTICE-420C3B.svg)](./NOTICE)
+
 I want to locally play with [Google's `coos`](https://cloud.google.com/container-optimized-os) in both `vagrant` and containers but they don't publish an image ([AWS does](https://hub.docker.com/_/amazonlinux) and [Azure builds on top of Ubuntu](https://github.com/Azure/AKS/tree/master/vhd-notes/aks-ubuntu); Google builds their own OS from scratch).
 
 ## Contents <!-- omit in toc -->
@@ -21,7 +23,6 @@ I want to locally play with [Google's `coos`](https://cloud.google.com/container
   - [Things to Track Down](#things-to-track-down)
   - [Things to Test](#things-to-test)
 - [Notes](#notes)
-- [License](#license)
 
 ## Prerequisites
 
@@ -384,9 +385,3 @@ kvm \
 ## Notes
 
 * [The note at the bottom of this section](https://cloud.google.com/container-optimized-os/docs/how-to/building-from-open-source#obtaining_the_source_code) is laughably inaccurate: I'm not entirely sure just how beefy your PC and network pipes would have to be to get the entire source without any slimming in "several minutes." I've spent maybe six hours just trying to get a single working copy down; granted, some of that is due to stops and starts as I test new configurations from scratch. There are more than ten copies of the kernel in the full, each somewhere around `2.5GB` in size. There are still close to 200 other projects to download in addition to those, plus the time it takes `git` to reconstruct the repo from the bundle.
-
-## License
-
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-
-See [the NOTICE file](./NOTICE)
