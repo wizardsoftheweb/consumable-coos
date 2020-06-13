@@ -219,19 +219,19 @@ repo init \
 
 5. Build the
 
-    ``shell
+    ```shell
     (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $
     ```
 
-    ``shell
+    ```shell
     (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $
     ```
 
-    ``shell
+    ```shell
     (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $
     ```
 
-    ``shell
+    ```shell
     (cr) (stable/(fe780ea...)) rickjames@couch ~/trunk/src/scripts $
     ```
 
