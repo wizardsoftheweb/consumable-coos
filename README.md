@@ -1,4 +1,4 @@
-# Container-Optimized OS Outside of GCP  <!-- omit in toc -->
+# `consumable-coos`  <!-- omit in toc -->
 
 I want to locally play with [Google's `coos`](https://cloud.google.com/container-optimized-os) in both `vagrant` and containers but they don't publish an image ([AWS does](https://hub.docker.com/_/amazonlinux) and [Azure builds on top of Ubuntu](https://github.com/Azure/AKS/tree/master/vhd-notes/aks-ubuntu); Google builds their own OS from scratch).
 
