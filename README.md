@@ -31,7 +31,7 @@ At the moment this repo is basically just a giant doc on how to build `coos` wit
 
 Google Cloud drops a letter and a hyphen from the name when they use an initialism to describe the project (`cos` is ***C***ontainer - optimized ***O***perating ***S***ystem). I drop a hyphen (`coos` is ***C***ontainer - ***O***ptimized ***O***perating ***S***ystem). When I was first indirectly exposed to `coos` earlier this year, I was terrified my teammates were advocating using [the now deprecated CoreOS project](https://coreos.com/os/eol/) (`cos` is ***C***ore ***O***perating ***S***ystem).
 
-I'm actively debating whether or not I should refactor with the hyphen (`c-oos` is ***C***ontainer ***-*** ***O***ptimized ***O***perating ***S***ystem) because, as you can, pedantry is _a big deal_.
+I'm actively debating whether or not I should refactor with the hyphen (`c-oos` is ***C***ontainer ***-*** ***O***ptimized ***O***perating ***S***ystem) because, as you can tell, pedantry is _a big deal_.
 
 ## Prerequisites
 
